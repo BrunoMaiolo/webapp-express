@@ -1,20 +1,21 @@
 const connection = require("../db/connection");
 
+// INDEX
 function index(req, res) {
   const sql = "SELECT * FROM movies";
 
   connection.query(sql, (err, results) => {
     if (err) throw err;
-
     res.json(results);
   });
 }
 
+// SHOW
 function show(req, res) {
   const id = req.params.id;
 
   const sql = `
-    SELECT 
+    SELECT
       movies.*,
       reviews.id AS review_id,
       reviews.name,
@@ -28,12 +29,10 @@ function show(req, res) {
   connection.query(sql, [id], (err, results) => {
     if (err) throw err;
 
-    //  se non trova nulla
     if (results.length === 0) {
       return res.status(404).json({ message: "Film non trovato" });
     }
 
-    // costruisco oggetto film
     const movie = {
       id: results[0].id,
       title: results[0].title,
@@ -45,7 +44,6 @@ function show(req, res) {
       reviews: []
     };
 
-    //  aggiungo recensioni
     results.forEach(row => {
       if (row.review_id) {
         movie.reviews.push({
@@ -60,4 +58,29 @@ function show(req, res) {
   });
 }
 
-module.exports = { index, show };
+// STORE REVIEW
+function storeReview(req, res) {
+  const movie_id = req.params.id;
+  const { name, text, vote } = req.body;
+
+  const sql = `
+    INSERT INTO reviews (movie_id, name, text, vote)
+    VALUES (?, ?, ?, ?)
+  `;
+
+  connection.query(sql, [movie_id, name, text, vote], (err, result) => {
+    if (err) return res.status(500).json(err);
+
+    res.status(201).json({
+      message: "Recensione aggiunta",
+      id: result.insertId
+    });
+  });
+}
+
+// EXPORT
+module.exports = {
+  index,
+  show,
+  storeReview
+};
